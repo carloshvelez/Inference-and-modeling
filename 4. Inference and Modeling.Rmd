@@ -1,0 +1,1498 @@
+---
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+# Inference and modeling
+
+Buscaremos aprender los conceptos principales en estadística y ciencia de datos: intervalos de confianza y puntuaciones p.
+
+## Muestreo de parámetros y estimadores
+
+Para vincular los conceptos anteriores de probabilidad, con las encuestas, se puede pensar en una urna en vez de votantes.
+
+Tenemos el reto de calcular la distancia en la proporción.
+Por ejemplo, una proporción de 0.25 y 0.75 tiene una distancia de 0.5
+
+el paquete dslabs contiene una función para mostrar un intento aleatorio desde una urna.
+Saquemos 25 balotas de la urna:
+
+```{r}
+library(dslabs)
+library(tidyverse)
+ds_theme_set()
+take_poll(25)
+```
+
+Si es una encuesta presidencial, representemos a los conservadores con azules y a los liberales con rojo.
+
+Queremos calcular la proporción de balotas azules en la urna, a esta se le llamará p.
+Esto nos dirá la proporción de rojos: 1-p Y también la distancia entre ambos p - (1-p), lo cual se puede simplificar con 2p-1
+
+La cantidad de balotas en la urna es la población.
+La proporción de azules en la urna (p) será el parámetro.
+Las 25 balotas que sacamos es la muestra.
+
+La tarea de la estadística inferencial es predecir el parámetro p, usando la data observada en la muestra.
+
+¿Es posible hacer esto con la muestra de 25?
+Si bien es informativo, la respuesta es NO.
+Es informativo porque si salió una proporción de 12/25 vs 13/25, es muy poco probable que el p sea 0.05.
+No obstante, hacer una predicción del parámetro con esta muestra arrojará una probabilidad de error muy alta.
+
+No obstante ¿nos permite predecir esto el p?
+Queremos construir un estimado de p, usando solo la información que observamos.
+
+Un estiamado puede entenderse como un resumen de los datos observados que, pensamos, es informativo acerca del parámetro de interés.
+
+Parece intuitivo pensar que la proporción de azules en la muestra, que en este caso es de 0.48 debe de estar relacionado con el p, pero ¿deberíamos predecir simplemente el p?
+
+Debemos notar que la proporción en la muestra es una variable aleatoria.
+Si corriéramos la urna cuatro veces, tendremos diferentes respuestas, lo cual implica diferentes proporciones.
+
+```{r}
+take_poll(25)
+take_poll(25)
+take_poll(25)
+take_poll(25)
+```
+
+Aquí la proporción varió entre 0.24 y 0.6
+
+Describir la distribución de esta variable aleatoria nos permitirá comprender qué tan bueno es este estimado y cómo podemos mejorarlo.
+
+### La probabilidad permite usar la muestra como un indicador de p.
+
+Podemos usar la probabilidad para defender la muestra que inicialmente habíamos sacado, como un indicador del parámetro real, y cuantificar qué tan cerca estamos de este.
+
+Vamos a empezar por definir nuestra variable aleatoria X.
+X será 1 si sacamos balota azul, y 0 si sacamos roja.
+Esto implica que estamos asumiendo que la población es toda de 0´s y 1´s.
+
+Si muestreamos una cantidad N de balotas, entonces el promedio de X_1 sobre N, es equivalente a la proporción de azules sobre el total de la muestra.
+
+La teoría acerca de la suma de intentos es útil (la muestra es equivalente a un intento), pues sabemos la distribución de la suma, N veces de la media.
+
+Sabemos esta distribución porque N es una constante no aleatoria.
+Por lo tanto, sólo es necesario multiplicar la N por la media y tendremos la suma de la distribucion N veces.
+Por ejemplo, partiendo de que el promedio de X1 en nuestra primera muestra es 0.6, en cuatro muestras tendremos 2.4/4, lo cual es igual a 0.6 nuevamente.
+
+Sabemos que el valor esperado de la suma de intentos es N veces el promedio de los valores en la urna.
+Sabemos también que el promedio de 0 y 1 en la urna debe de ser la proporción p, el valor que queremos estimar.
+
+De la misma manera que se usan variables para definir cantidades desconocidas en los sistemas de ecuaciones, en estadística inferencial se usan parámetros para definir partes desconocidas de los modelos.
+
+En nuestro ejercicio, p es un valor desconocido, es decir, un parámetro.
+
+Vamos a estimar este parámetro.
+
+### El teorema del límite central se aplica a la suma de sorteos
+
+El TLC predice que la función de distribución para una suma de sorteos es aproximadamente normal.
+
+En ese sentido, $\bar{X}$ tiene una distribución aproximadamente normal, cuyo valor esperado es $p$ y el error estándar es $\frac{\sqrt{p(1-p}}{\sqrt{N}}$
+
+Supongamos que queremos saber cuál es la probabilidad de que estamos dentro de un punto porcentual de p.
+
+En ese sentido estamos preguntándonos cuál es la probabilidad de que la distancia entre $\bar{X}$ y p sea menor o igual que 0.01:
+
+$$
+Pr(|\bar{X}-p|\le 0.01)
+$$
+
+Esto es equivalente a preguntarse cuál es la probabilidad de que $\bar{X}$ sea menor o igual a $p+0.01$.
+menos la probabilidad de que $\bar{X}$ sea menor o igual $p-0.01$
+
+$$
+Pr(\bar{X}\le p+0.01) - Pr(\bar{X}\le p-0.01) 
+$$
+
+¿Podemos responder a esa pregunta?
+
+Podemos aplicar el truco de sustraer el valor esperado y dividirlo por el error estándar en ambos lados de la ecuación, de tal manera que nos arroje una varable normal $Z$,
+
+$$
+Pr(\frac{\bar{X}-E(\bar{X}}{SE(\bar{X})}\le\frac{ (p+0.01)-E(\bar{X})}{SE(\bar{X})}) - Pr(\frac{\bar{X}-E(\bar{X}}{SE(\bar{X})}\le\frac{ (p-0.01)-E(\bar{X})}{SE(\bar{X})}) 
+$$
+
+Esto es equivalente a ubicar una variable normalizada Z en la parte izquierda de cada desigualdad
+
+$$
+Pr(Z\le\frac{ (p+0.01)-E(\bar{X})}{SE(\bar{X})}) - Pr(Z\le\frac{ (p-0.01)-E(\bar{X})}{SE(\bar{X})}) 
+$$
+
+Podemos hacer estos cálculos teniendo en cuenta que:
+
+$E(\bar{X}) = p$$SE(\bar{X})= \sqrt{p(1-p)/N}$
+
+Así que la fórmula quedaría así:
+
+$$
+Pr(Z\le0.1/\sqrt{p(1-p)/N}) - Pr(Z\le-0.1/\sqrt{p(1-p)/N}) 
+$$
+
+El problema es que no conocemos p, así que no podemos computar el error estandar de $\bar{X}$ simplemente usando estos datos.
+
+Sin embargo, resulta que el TLC funciona aún si usamos un estiamado del error estándar que, en vez de p, use a $\bar{X}$ en su lugar.
+
+Decimos que es un estimado plug-in.
+Asé que pasamos de esto:
+
+$SE(\bar{X})= \sqrt{p(1-p)/N}$
+
+a esto:
+
+$\hat{SE}(\bar{X})= \sqrt{\bar{X}(1-\bar{X})/N}$
+
+Nótese que cambiamos $p$ por $\bar{X}$
+
+El sombrero en $\hat{SE}$ indica que se trata de un estimado.
+
+Se trata de un estimado del error estándar, no el error estándar real.
+Pero, como se dijo, la teoría del límite central opera.
+
+Este estimado puede ser construido teniendo en cuenta los datos observados.
+
+Ahora computemos este estimado con las balotas que habíamos sacado inicialmente: 12 azules y 13 rojas.
+En ese caso:
+
+$$
+\bar{X} = \frac{12}{25}
+$$
+
+$$
+\bar{X} = 0.48
+$$
+
+Así que para computar el error estándar:
+
+$$
+\hat{SE}(\bar{X})= \sqrt{\bar{X}(1-\bar{X})/N} = \sqrt{0.48*1(1-0.48)/25} = 0.0999
+$$
+
+```{r echo=TRUE}
+X_hat <- 12/25
+se <- sqrt(X_hat*(1-X_hat)/25)
+se
+```
+
+Con esto ya podemos responder a la pregunta:
+
+```{r}
+pnorm(0.01/se) -  pnorm(-0.01/se)
+```
+
+La probabilidad de que estemos dentro de un punto porcentual de p es entonces de 0.08 u 8%
+
+En ese sentido, hay uy poca probabilidad de que estemos dentro de esa proporción.
+
+Lo que ahora vamos a hacer es determinar qué tamaño de muestra es mejor, y una vez tengamos ese tamaño de muestra, podremos afrecer una estimado bueno e informativo de las probabilidades.
+
+### Margen de error.
+
+Así que sabemos que una encuesta de sólo 25 personas no es muy útil, al menos cuando tenemos una elección muy reñida.
+
+Ahora podemos definir el margen de error, pues simplemente es 1.96 veces el error estándar, el cual ya pudimos calcular.
+
+En ese sentido hay una probabilidad del 95% de que $\bar{X}$ esté entre 1.96 veces el margen de error.
+
+Dicho de otra manera, hay 95% de probabilidades que el valor p se encuentre en 1.96 errores estándar por encima y por debajo de $\bar{X}$.
+El 95% es lo que normalmente se suele usar, si quisiéramos una probilidad más alta, tendríamos que multiplicar el error estándar por un número más grande.
+
+Para este caso, el margen de error es entonces el error estándar multiplicado por 1.96 veces.
+
+Es decir, el margen de error es:
+
+$m.error = se*196 = 0.099 * 196 = 0.194 = 19.4%$
+
+El margen de error sería aquí del 19.4%, lo cual quiere decir que los resultados podrían variar 19.4 hacia arriba o hacia abajo del 48% obtenido para los demócratas.
+
+El teorema del límite central nos dice que una muestra de 25 no es muy útil, pues el margen de error es amplio.
+
+```{r}
+linferior = X_hat-1.96*se
+lsuperior = X_hat+1.96*se
+linferior
+lsuperior
+```
+
+nótese que, si se sacaran 100 encuestas con una muestra de 25 personas, el $\bar{X}$ estaría variando entre 0.28 y 0.68.
+Dicho de otra manera, la intención de voto por el partido demócrata estaría variando entre 28% y 68%, lo cual no es nada útil.
+
+Para disminuir este margen de error, tendríamos que aumentar el número de personas en la muestra:
+
+Por ejemplo, supongamos que mantenemos la misma proporció pero ahora son 2500 personas:
+
+```{r}
+X_hat <- 1200/2500
+se <- sqrt(X_hat*(1-X_hat)/2500)
+se
+se*1.96
+(se*1.96)*100
+
+```
+
+Ahora nuestro SE es de 0.0099 y el margen de error del 1.96 porciento.
+Esto último es solo hipotético, aún no hemos colectado una muestra de 2500 participantes.
+
+### Una simulación montecarlo para corroborar que estamos bien encaminados:
+
+```{r}
+p <- 
+B <- 10000
+N <- 1000
+X_hat <- replicate(B, {
+  X <- sample(c(0,1), N, replace = TRUE, prob = c(1-p, p))
+  mean(X)
+  })
+
+```
+
+El problema con el código anterior, es que no sabemos cuál es el número de p (es lo que se intenta estimar en una encuesta)
+
+Lo que podemos hacer es hacer la simulación montecarlo con diferentes números de p.
+
+```{r}
+simulation <- function(p){
+  X_hat <- replicate(10000, {
+    X <- sample (c(0,1), N, replace = TRUE, prob = c(1-p, p))
+    mean(X)
+  })
+  c(EX = mean(X_hat), sd = sd(X_hat))
+}
+ps <- seq(0.15, 0.85, 0.15)
+data.frame(sapply(ps, simulation))
+```
+
+Vemos que para cada p, el valor esperado es el de la p, y la desviación estándar es la que se espera de acuerdo con la fórmula.
+
+Lo podemos confirmar así:
+
+```{r}
+estimación <- function(p){
+  se <- sqrt(p*(1-p)/1000)
+  c(Ex = p, sd = se)
+}
+#estimación(0.5)
+data.frame(sapply(ps, estimación))
+```
+
+### Calculando el spread.
+
+Si queremos identificar la diferencia entre conservadores y liberales, tan sólo tendremos que aplicar la fórmula .
+
+$$
+spread = p-(1-p) = 2p-1
+$$
+
+También el error estándar del spread tendremos que multiplicarlo por 2, en ese sentido, las fórmulas quedan así:
+
+$$
+Spread = 2\bar{X}-1
+$$
+
+$$
+m.error[Spread]= 2*m.error(\bar{X})
+$$
+
+En ese sentido, para nuestra muestra de 25 personas, con un $\bar{X}=0.48$ y un $\hat{SE}=0.02$, la cuetión quedaría así:
+
+$$
+Spread = 2*0.48-1 = -0.04
+$$
+
+$$
+m.error[Spread] = 2*0.2 = 0.4
+$$
+
+### Sesgos en las encuestas
+
+Las encuestas se hacen con 1000-3000 personas y no más, no sólo por el costo, sino también porque entre más personas se usen, más riesgo de sesgo hay.
+
+Las encuestas suelen tener entre el 1% y el 2% del sesgo según se ha estimado.
+
+Este sesgo tiene que ver con las dificultades propias del trabajo de campo: personas que mienten, no están disponibles, no quieren responder, o sólo se termina entrevistando a algunos con unas características específicas que sesgan sus respuestas.
+
+## Intervalos de confianza
+
+Los intervalos de confianza son a menudo usados por el científico de datos.
+Una versión de estos son a menudo utilizados con la geometría de geom_smooth() de ggplot.
+
+Por ejemplo:
+
+```{r}
+data("nhtemp")
+data.frame (year=as.numeric(time(nhtemp)), temperature=as.numeric(nhtemp)) %>% 
+  ggplot(aes(year, temperature))+
+  geom_point()+
+  geom_smooth()+
+  labs(x="Año", y="Temperatura promedio", title = "Temperaturas Promedio en New Heaven")
+  
+
+```
+
+El areas sombreada se crea usando el concepto de intervalo de confianza.
+
+Los intervalos de confianza nos dicen con cuánta confianza podemos ofrecer un intervalo en el que estará el p estimado.
+
+Cuando se reporta el p y el margen de error, de cierto modo se está reportando el intervalo de confianza.
+
+El intervalo de confianza simplemente nos dice la probabilidad con la que p está dentro del intervalo conformado por x - 1.96se, y x más 1.96se
+
+$$
+IC95\% = Pr[\bar{X}-1.96\hat{SE}(\bar{X}), \bar{X}+1.96\hat{SE}(\bar{X})] = 95\%
+$$
+
+El límite inferior y superior de los intervalos también son variables aleatorias: cambian cada vez que corremos una simulación montecarlo.
+
+Todo esto es equivalente a decir que el intervalo de confianza señala la probabilidad de que el p esté entre menos 1.96z y más 1.96z de la media estimada.
+
+Es necesario tener en cuenta que los intervalos de confianza son aleatorios, pero el p real no es aleatorio.
+El IC95% habla de la probabilidad que la el intervalo coincida con el p real.
+Es técnicamente incorrecto decir que p tiene un 95% de probabilidad de estar entre el intervalo, porque esto implica que p es aleatorio.
+
+LOS INTERVALOS SON LOS ALEATORIOS, NO P.
+
+### Poder estadístico.
+
+El poder estadístico es la probabilidad de detectar un efecto cuando en realidad está allí.
+El poder incremente en la medida que lo hace el tamaño de la muestra, debido a que muestras más grandes significan menor error estándar.
+
+Por ejemplo, el poder estadístico nos ayuda a establecer la probabilidad de encontrar una diferencia real entre demócratas y republicanos.
+Si después de la encuesta, encontramos un intervalo de confianza que incluya una diferencia de 0, entonces dicha encuesta no es útil, pues hay alta probabilidad de que ambos estén empatados, o no.
+
+El poder estadístico habla de la probabilidad de detectar un efecto real.
+
+Podemos hablar de un buen poder estadístico, cuando el intervalo de confianza del spread no incluye el 0.
+
+El hecho de que en nuestra encuesta el intervalo de confianza del spread incluya el 0, no quiere decir que los candidatos estén muy cerca; sólo quiere decir que el tamaño de la muestra es muy pequeño.
+
+Si se quiere mejorar este intervalo, y por lo tanto el poder estadístico, se requiere que el tamaño de la muestra sea mayor.
+
+EL PODER ES LA PROBABILIDAD DE DETECTAR UN SPREAD DIFERENTE DE 0.
+
+### Valores p.
+
+Son muy comunes en la ciencia.
+Están relacionados con los intervalos de confianza.
+
+Si un intervalo de confianza de 95% para el spread no incluye el 0, esto implica que el valor p debe de ser igual a 1-95%, o 0.05.
+
+En general, se prefiere usar intervalos de confianza que p valor.
+
+## Modelos estadísticos.
+
+### Agregadores de encuestas
+
+Es posible tomar varias encuestas y ponderarlas, de tal forma que nos arroje un resultado ponderado.
+
+Para eso, vamos a generar resultados para 12 encuestas tomadas la semana antes de las elecciones y construiremos el intervalo de confianza para cada encuesta:
+
+```{r}
+d <- 0.039
+Ns <- c(1298, 533, 1342, 897, 774, 254, 812, 324, 1291, 1056, 2172, 516)
+p <- (d+1)/2
+confidence_interval <- sapply(Ns, function(N){
+  X <- sample (c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+  X_hat <- mean(X)
+  SE_hat <- sqrt(X_hat*(1-X_hat)/N)
+  2*c(X_hat, X_hat-2*SE_hat, X_hat+2*SE_hat)-1
+  
+})
+confidence_interval
+```
+
+Ahora vamos a crear un data.frame:
+
+```{r}
+polls <- data.frame(Poll = 1:ncol(confidence_interval),
+                    t(confidence_interval),
+                    Sample = Ns
+                    )
+names(polls)<- c("poll", "estimate", "low", "high", "sample_size")
+polls
+```
+
+Es necesario tener en cuenta que la mayoría de intervalos arriba incluyen el 0, lo cual da lugar a empate.
+
+Si combináramos los resultados de cada encuesta, podríamos aumentar grandemente la precisión.
+Esto implica hacer una encuesta con una muestra inmensa (la suma de las disponibles).
+
+Aunque no se tiene acceso a los datos brutos, podemos usar la matemática para reconstruir lo que podríamos haber obtenido si hubiéramos hecho una encuesta con el total de las muestras., en este caso, 11269.
+
+Básicamente construiremos un estimado del spread (d), con un porcentaje ponderado.
+
+Lo que haremos es multiplicar cada spread individual por el tamaño de la muestra y posteriormente dividirlo por el total de los participantes en todas las encuestas.
+
+```{r}
+d_hat <- polls %>% summarize(avg = sum(estimate*sample_size)/sum(sample_size))%>%.$avg
+```
+
+Aquí ya tenemos entonces el estimado del spread (Es un spread ponderado).
+
+Con esto ya podemos construir el estimado de p:
+
+```{r}
+p_hat <- (d_hat+1)/2
+```
+
+También podemos obtener el error estándar:
+
+```{r}
+se <- sqrt((p_hat*(1-p_hat))/sum(polls$sample_size))
+```
+
+Con el error estándar ya puedo calcular el margen de error del 95%:
+
+```{r}
+moe <- se*qnorm(0.975)
+```
+
+Pero debo recordar que para el spread debo multiplicar el margen de error de $\bar{X}$ por dos:
+
+```{r}
+moe <- moe*2
+moe
+```
+
+Así pues, el spread será:
+
+```{r}
+d_hat
+moe
+```
+
+vamos a convertir a porcentajes, redondeado con dos cifras:
+
+```{r}
+round(d_hat*100,2)
+round(moe*100,2)
+```
+
+Tenemos entonces un spread ponderado de 4.34%, con un margen de error del 95% de 1.84%
+
+Es necesario tener en cuenta que aquí la diferencia sería entonces de más del 4%, y que, como la variación de esa diferencia está en el orden de 1.84, esta nunca tocará el 0.
+
+También es necesario tener en cuenta que el hecho de agregar todas las encuestas, aumentó la muestra, lo cual , a su vez, disminuyó el margen de error.
+
+### Encuestas y modelos multinivel.
+
+El ejercicio anterior es muy ilustrativo, pero en la realidad, los agregadores de encuestas hacen ejercicios más complejos a través de modelos.
+Cada uno dispone de un modelo diferente, por lo que cada encuestadora puede arrojar resultados distintos.
+
+Usemos la data pública disponible para la elección del potus 2016.
+
+```{r}
+library(dslabs)
+data(polls_us_election_2016)
+```
+
+Primero vamos a seleccionar las encuestas que se dieron en la última semana y que tienen una alta confiabilidad de acuerdo al grado b+ o superior.
+También seleccionaremos las encuestas a las que no se les asignaron grado
+
+```{r}
+polls2<-polls_us_election_2016%>%filter(state=="U.S."& enddate>="2016-10-31" & (grade %in% c("A+", "A", "A-", "B+") | is.na(grade)))
+```
+
+Ahora vamos a agregar un spread estimado para las encuestas:
+
+```{r}
+polls2 <- polls2 %>%mutate(spread = rawpoll_clinton/100 - rawpoll_trump/100)
+```
+
+Sólo estamos interesados en en Trump y Clinton, aunque hay más candidatos.
+Vamos a estimar p para clinton y 1-p para Trump.
+
+Nótese que hay varios Spread para cada una de las encuestas.
+La probabilidad sostiene que estos también son variables aleatorias con distribucion aproximadamente normal.
+
+Con base en esto, lo mejor es construir una diferencia ponderada con toda la información:
+
+```{r}
+d_hat <- polls2 %>% summarize(d_hat = sum(spread*samplesize)/sum(samplesize))%>%.$d_hat
+```
+
+Con ello ya podemos arribar a nuestro error estándar y al margen de error, que, recordemos, para el spread es dos veces el de la x:
+
+```{r}
+p_hat <- (d_hat+1)/2
+moe = 2*qnorm(0.975)*sqrt(p_hat*(1-p_hat)/sum(polls2$samplesize))
+round(d_hat*100, 2)
+round(moe*100, 2)
+```
+
+Así que tenemos una distancia entre candidatos del 1.43% y un margen de error del 0.66%, lo cual deja por fuera el 0.
+Esto habla de que con el 95% de probabilidad, en ese momento, ganaría Clinton.
+
+En la noche de las elecciones el spread fue de 2.1%, el cual estuvo por fuera del intervalo de confianza del 95%.
+¿Qué pasó?.
+Miremos un histograma:
+
+```{r}
+polls2 %>% ggplot(aes(x=spread))+
+  geom_histogram(color="black", binwidth = 0.01)
+```
+
+Esta data no parece estar normalmente distribuída (en el ejercicio asumios que sí), y la desviación estándar parece ser mayor que 0.0066, que fue el resultado de nuestro ejercicio.
+
+Aquí la teoría no está funcionando.
+
+Miremos la cantidad de encuestas que hizo cada uno:
+
+```{r}
+polls2 %>% group_by(pollster)%>%summarize(n())
+```
+
+Filtremos y grafiquemos los spread para las encuestadoras que hicieron más de seis encuestas:
+
+```{r}
+polls2 %>%group_by(pollster) %>% filter(n()>6)%>%ggplot(aes(pollster, spread))+geom_point()+theme(axis.text.x = element_text(angle = 60, hjust = 1))
+```
+
+La teoría nos daba un valor del spread de entre 0.018 y 0.033.
+Si bien esto parece cierto en algunos casos, es necesario tener en cuenta la diferencia que hay entre, por ejemplo, LA Times, que daba ganador a TRUMP y Lucid, que daba ganador a Clinton.
+
+Esto se debe a los sesgos de la encuestadora.
+
+Más que usar un modelo basado en urna como el que se ha usado hasta aquí, vamos a desarrollar un modelo dirigido por la data, para producir un mejor estimado y un mejor intervalo de confianza.
+
+### Modelos derivados de la data.
+
+Recojamos la última encuesta de cada encuestador
+
+```{r}
+one_poll_per_pollster <- polls2 %>% group_by(pollster)%>%filter(enddate ==max(enddate))%>%ungroup()
+```
+
+Hagamos un histograma del spread para estas encuestas:
+
+```{r}
+one_poll_per_pollster %>% ggplot(aes(x=spread))+
+  geom_histogram(color="black", binwidth = 0.01)
+```
+
+Debido al sesgo de cada encuestadora, no podemos usar la teoría basada en urna; en su lugar, usaremos un modelo de los spread que se basen directamente en los datos.
+
+Este nuevo modelo también puede pensarse como una urna, pero la conexión con esta no es tan directa.
+
+Más que tener 0s y 1s (o rojos y azules) en una urna, ahora vamos a tener, dentro de la urna, los resultados de cada posible encuestadora.
+
+Asumimos que el valor esperado de la urna es el spread real, al cual hemos estado llamando D, el cual es 2p-1.
+
+Ahora bien, debido a que ya no tenemos 0 y 1 en la urna, sino números continuos entre -1 y 1, la desviación estándar ya no se calcula de la misma manera.
+Ya no se trata de muestrear la variabilidad que obtenemos de tomar diferentes muestas de ceros y unos.
+Ahora se trata de incluir la variabilidad que se da entre cada encuesta.
+
+Esta desviación estándar es ahora un parámetro, (representado por $\sigma$)
+
+Es decir, tenemos dos parámetros desconocidos ahor: el valor esperado de d, el cual queremos estimar, y la desviación estándar sigma $\sigma$.
+
+Debido a que modelamos los valores observados de las encuestadoras como si fueran una variable aleatoria (es como recoger una muestra), el teorema del límite central se aplica también aquí.
+
+Para una muestra suficientemente larga de N, la distribución de probabilidad de $\bar{X}$ es aproximadamente normal, con desviación estándar $\sigma$ dividida sobre la raiz cuadrada de N.
+
+Si consideramos que 15 es una muestra lo suficientemente larga, podemos usarlo para construir un intervalo de confianza.
+
+El problema es que no conocemos sigma, pero podemos estimarlo con la desviación estándar de la muestra que es la raiz cuadrada de la suma de las diferencias elevadas al cuadrado sobre el n menos 1.
+
+En r se computa fácilmente con la función sd()
+
+Con esto ya estamos listos para crear el model basado en los datos:
+
+```{r echo=TRUE}
+results <- one_poll_per_pollster %>% summarize (avg = mean(spread), se = sd(spread)/sqrt(length(spread)))%>%mutate(start = avg-1.96*se, end = avg+1.96*se)
+round(results*100,2)
+```
+
+Nótese que este nuevo intervalo de confianza es más amplio, e incluye el resultado de la noche de elecciones de 2.1%
+
+No obstante, sique prediciendo que clinton es el que gana.
+
+## Estadística bayesiana
+
+¿Qué quiere decir cuando una ecuestadora afirma que un candidato tiene un 90% de probabilidades de ganar?
+En el contexto del modelo de urna puede ser equivalente a decir que la probabilidad de que la proporción p de personas votando por x candidato sea mayor que el 0.5, es 90%.
+Sin embargo, en al modelo de urna, p es un parámetro fijo, por lo que no tiene sentido hablar acerca de la probabilidad de que p sea x o y cosa.
+
+Con la estadística Bayesiana se asume que p es, de hecho, aleatorio, y por lo tanto tiene sentido hablar de un p probabilístico.
+
+Las encuestadoras usan modelos para describir la variabilidad en diferentes niveles.
+Por ejemplo: variabilidad en el muestreo, entre encuestas, diaria, de elección a elección.
+
+Uno de los enfoques más exitosos para describir estos niveles diferentes de variabilidad son llamados **Modelos jerárquicos**, los cuales son mejor explicados en el contexto de la estadística bayesiana.
+
+### El teorema de Bayes
+
+Supongamos que un test para fibrosis cística tiene una precisión del 99%.
+Esto quiere decir que la probabilidad de dar positivo en el test, y que en efecto tengas la enfermedad, es de 0.99, y que la probabilidad de dar negativo, y no tengas las enfermedad es de 0.99:
+
+$$Prob(+|D=1) = 0.99, Prob (-|D=0) = 0.99$$
+
+Supongamos que tenemos a una persona aleatoria y da positivo en el test, ¿Cuál es la probabilidad de que tenga la enfermedad?,
+es decir ¿Cuál es la probabilidad de D=1?
+
+$$
+Prob (D=1|+)
+$$
+
+La tasa de fibrosis quística es 1 en 3900, lo cual implica que la probabilidad de que D =1 es 0.00025.
+
+$$
+Prob(D=1|+) = 0.00025
+$$
+
+Para responder a es pregunda usaremos el teorema de Bayes, el cual propone que la probabilidad de un evento A, dado un evento B es igual a la probabilidad de que ambos ocurran dividido por la probabilidad de que ocurra el evento B.
+
+$$
+Pr(A|B)=\frac{Pr(A and B)}{Pr(B)}
+$$
+
+En este caso el numerador se parte en dos siguiendo la regla de la multiplicación:
+
+$$
+Pr (A|B) = \frac{Pr(B|A).Pr(A)}{Pr(B)}
+$$
+
+Esto será útil porque a menudo sabemos la probabilidad de A dado B, pero no la probabilidad de B dado A, como es el caso de la fibrosis quística.
+
+Ahora apliquemos el teorema de Bayes a esta situación:
+
+$$
+Pr(D=1|+) = \frac{P(+|D=1).Pr(D=1)}{Pr(+)}
+$$
+
+$$
+Pr (D=1|+)= \frac{Pr(+|D=1).Pr(D=1)}{Pr(+|D=1).Pr(D=1)+Pr(+|D=0).Pr(D=0)}
+$$
+
+Esto es igual a:
+
+$$
+Pr (D=1|+) = \frac{0.99.Pr(D=1)}{0.99.Pr(D=1) + Pr(+|D=0).Pr(D=0)}
+$$
+
+$$
+=\frac{0.99*0.00025}{0.99 * 0.00025+Pr(+|D=0).Pr(D=0)}
+$$
+
+$$
+= \frac{0.99*0.00025}{0.99*0.00025+0.01*Pr(D=0)}
+$$
+
+$$
+= \frac{0.99*0.00025}{0.99*0.00025+0.01+0.99975}
+$$
+
+$$
+=0.02
+$$
+
+Todo esto quiere decir que, pese a que el test tiene una precisión del 99%, la probabilidad de tener la enfermedad, dado un test positivo es sólo del 2%.
+
+Esto parece contraintuitivo, pero tiene sentido.
+
+Esto es así porque se debe tener en cuenta la posibilidad muy rara de que la persona elegida al azar tenga la enfermedad.
+La forma Bayesiana de comprenderlo es la siguiente: empecemos con una simulación montecarlo en la que seleccionamos a 100000 personas en las que la enfermedad tiene una prevalencia de 1 en 3900:
+
+```{r}
+prev <- 0.00025
+N <- 100000
+outcome <- sample(c("Disease","Healthy"), N, replace=TRUE, prob = c(prev, 1-prev))
+N_D <- sum(outcome=="Disease")
+N_H <- sum(outcome =="Healthy")
+
+```
+
+Nótese que debido a la prevalencia tan baja, sólo personas tienen la enfermedad.
+Y los sanos son muchos.
+
+```{r}
+sprintf("Personas enfermas: %d", N_D)
+sprintf("Personas sanas: %d" ,N_H)
+
+```
+
+Esto hace que la probabilidad de que veamos falsos negativos sea muy alta.
+Es así, el test tiene una probabilidad de detectar a 99 enfermos entre 100 enfermos; pero las probabilidades son mucho menores cuando tiene que detectar entre una gran cantidad de saludables y pocos enfermos.
+
+```{r}
+accuracy <- 0.99
+test <- vector ("character", N)
+test[outcome =="Disease"]<- sample(c("+","-"), N_D, replace =TRUE, prob =c(accuracy, 1-accuracy))
+test[outcome =="Healthy"]<- sample(c("-","+"), N_H, replace =TRUE, prob =c(accuracy, 1-accuracy))
+
+
+
+```
+
+Ahora hagamos una tabla:
+
+```{r}
+table(outcome, test)
+```
+
+Vemos que el número de personas sanas que obtuvieron un test positivo es de 1059.
+y que el total de personas con un test positivo es de 1084.
+Lo cual da un aproximado de 2.3%
+
+### El teorema de Bayes en práctica:
+
+Para demostrar la utilidad de los modelos jerárquicos basados en la teoria de Bayes, usemos un ejemplo del baseball.
+
+José Iglesis es jugador profesional de Baseball, En 2013, al inicio de su carrera, su desempeño fue muy bueno.
+Presentó una tasa de bateo de 9/20, lo cual arroja un promedio de 0.450.
+
+Esto implica que fue exitoso un 45% del tiempo.
+Esto es muy alto en términos de cifras históricas, si se tiene en cuenta qu enadi ha logrado un promedio de 0.4 o más, al finalizar la temporada, desde 1941.
+
+Para ilustrar los modelos jerárquicos, trateremos de predecir la tasa de bateo de José al final de la temporada.
+
+En una temporada típica, los jugadores tienen aproximadamente 500 bateos.
+
+Con las técnicas del modelo de urna, lo máximo que podemos hacer es ofrecer un intervalo de confianza.
+De tal forma que el valor esperado sería 0.4, el error estándar sería la raíz cuadrada de p\*1-p sobre 1:
+
+```{r}
+error<- sqrt(0.45*0.55/20)
+error
+"Límite inferior:" 
+0.45-error*1.96
+"Límite superior:" 
+0.45+error*1.96
+```
+
+Esto no da que el error estándar es .10 y que el intervalo de confianza es entre 23.25 y 66.8%
+
+Esta predicción tiene dos problemas:
+
+1.  Es muy amplia y por lo tanto poco útil.
+2.  Está centrada e 0.45, lo que implica que un jugador poco conocido podría romper el record histórico.
+
+Históricamente se sabe que, en promedio, los jugadores tienen una tasa de bateo anual de 0.275 con una desviación estándar de 0.027.
+Esto implica que el bateo de josé está a seis desviaciones promedio por encima de la media.
+
+#### Niveles de probabilidad:
+
+Para este caso, el teorema de Bayes propondrá dos niveles de probabilidad: El primero tendrá que ver con el nivel nomotético, general, o "innato", que es el que hemos visto que se observa históricamente.
+
+$p\sim N(\mu,\tau)$ Describe aleatoriedad a la hora de elegir a un jugador
+
+El símbolo tilde \~ describe la distribución de algo.
+Así que aquí se nos dice que p (que ahora es una variable aleatoria), tiene una distribución normal, con un valor esperado de mu, y un error estándar tau.
+
+Esto describe la aleatoriedad a la hora de elegir al jugador, y usa los parámetros para el nivel nomotético: $\mu = 0.275$ y $\tau = 0.027$
+
+Ahora describimos la distribución en el siguiente nivel:
+
+$$
+Y | p \sim N(p, \sigma)
+$$
+
+Este es el nivel del promedio observado (el de José), a este promedio se le llama Y, el cual tiene un talento p, que también se distribuye normalmente, con un valor esperado P y un error estándar sigma.
+
+en este caso, sigma cuadrado es p\*1-p/N
+
+$$
+\sigma^2=\frac{p*(1-p)}{N}
+$$
+
+Debido a que hay dos niveles, le llamamos modelos jerárquicos.
+El primer nivel es la variabilidad jugador a jugador, y el segundo nivel es la variabilidad debida a la suerte.
+
+En estadística Bayesiana, al primer nivel se le llama Distribución Previa, y al segundo nivel se le llama Distribución de Muestreo.
+
+Así, en el caso de José, la distribución previa es aquella que habla de los promedios históricos de bateo para todos los jugadores (0.275, 0.027) y la distribución de muestreo es el bateo en los 20 primeros intentos.
+
+$\mu=0.275$
+
+$\tau=0.027$
+
+$\sigma=0.111$
+
+Tenemos entonces:
+
+$$
+p\sim N(.275, .027)
+$$
+
+$$
+Y|p\sim N(p, .111)
+$$
+
+Y dado p es normal, con ds de 111, pero no sabemos el p.
+
+Ahora estamos listos para calcular la Distribución Posterior:
+
+La estadística bayesiana nos permite computar la distribución de probabilidad de p, dado que ya tenemos datos observados.
+Esto es la distribución posterior.
+
+Hay una versión continua de la regla de bayes que nos permite calcular variables con distribuciones continuas (como la distribución normal), la cual se puede usar aquí.
+
+Se puede demostrar que esta distribución posterior, sigue una distribución normal con valor esperado dado por la siguiente fórmula:
+
+$$
+E(p|y) = B\mu + (1-B) Y
+$$
+
+$$
+E(p|y)= \mu+(1-B)(Y-\mu)
+$$
+
+Esta fórmula es un promedio ponderado entre mu (que es el bateo histórico) y Y, que es el bateo de josé.
+
+Si B fuera cercano a 0, quiere decir que lo histórico tiene poco peso y lo más importante es el bateo observado de José.
+Si B fuera cercano a 1, quiere decir que la suerte de José aporta poco al cálculo y nos quedaríamos con el bateo hitórico.
+
+Dicho de otra forma, entre más cercano a 1, Más aporte de la distribución previa.
+
+Para calcular B:
+
+$$
+B = \frac{\sigma^2}{\sigma^2+\tau^2}
+$$
+
+Etre más grande sea sigma, más grande (cercano a 1), será B.
+
+Sigma será grande cuando la varianza de la data observada sea grande (Entre menos confiamos en nuestra data observada, B será más grande).
+
+B es un promedio ponderado al que a menudo se le llama shrinking (contracción), debido a que contrae la data observada Y, hacia la media previa.
+
+En el caso de Jose Iglesias:
+
+$$B = \frac{\sigma^2}{\sigma^2+\tau^2} = \frac{.111^2}{111^2+.27^2} = 0.944$$ Esto nos da a entender que el p de José estará muy cerca al histórico:
+
+$$E(p|Y = 0.450) = B *.275+(1-B)*.450$$
+
+$$E(p|Y = 0.450) = .275+(1-B)*(.450-.275)$$
+
+$$0.056E(p|Y = 0.450) = .275+(1-0.944)*(.450-.275)$$ $$E(p|Y = 0.450) = .275+(0.056)*(0.175)$$
+
+$$ E(p|Y = 0.450) = 0.2848 $$
+
+Para esta distribución posterior también se puede calcular la desviación estándar El error estándar va así:
+
+$$
+SE(p|y)^2=\frac{1}{1/\sigma^2 + 1/\tau^2}= \frac{1}{1/.111^2+1/.027^2}= 0.00069
+$$
+
+Di aquí obtenemos que la desviación estándar es 0.026
+
+Es necesario aclarar que a este enfoque se le llma **aproximación bayesiana empírica.** En una aproximación bayesiana tradicional simplemente se establece lo previo.
+
+En una aproximación Bayesiana empírica, usamos la data para construir lo previo.
+
+Usando la distribución posterior, podemos reportar lo que se lllema el intervalo del 95% creíble.
+Esta región se centra en el valor esperado con un 95% de probabilidad de ocurrir.
+Aquí el p es aleatorio, así que se puede hablar del p variando.
+En este caso del 95%, agregando 1.96 veces el error estándar de la distribución posterior.
+
+## Predicciones electorales
+
+Las encuestadoras pueden hacer predicciones probabilísticas tales como: la probabilidad de que Obama gane las elecciones es de 95%.
+
+Esa es una afirmación probabilística acerca del parámetro d.
+
+En el 2016, una encuestadora anunción una probabilidad de 81.4% de que Clinton ganara las elecciones.
+Para hacer eso, usó una aproximación Bayesiana.
+
+Para poner este enfoque en práctica, vamos a hacer algo similar a lo que se hizo con el jugador de Baseball:
+
+$d\sim N(\mu, \tau)$ describe el mejor supuesto de que no hemos visto ningun dato de encuestas.
+
+$\hat{X}|d\sim N(d, \sigma)$ describe aleatoriedad debido a efectos de muestreo y de encuestadora.
+
+Para nuestro mejor supuesto, notamos que antes de cualquier dato de encuesta disponible, podemos usar fuentes diferentes a los datos de encuestas.
+
+Una aproximación popular es usar lo que se llaman "fundamentales", que se basan en propiedades de la economía actual y otros factores que históricamente parecen tener un efecto en favor o en contra de algún partido.
+Aquí no usaremos estos.
+En su lugar, estableceremos a mu como 0.
+
+$\mu = 0$
+
+Esto se interpreta con un modelo que simplemente no ofrece información acerca de quién va a ganar (antes de ver la encuesta no tenemos la menor idea de quién ganará).
+
+Para la desviación estándar, usaremos datos históricos recientes que muestran que el ganador de las elecciones tiene un spread de 3.5% aproximadamente; este es tau:
+
+$\tau=0.035$
+
+Ahora podemos usar las fórmulas previas para la distribución posterior para el parámetro d, para reportar la probabilidad de d mayor que 0, dados los datos de encuestas observados.
+
+```{r}
+data(polls_us_election_2016)
+polls <- polls_us_election_2016 %>% 
+  filter(state == "Florida" & enddate >= "2016-11-04" ) %>% 
+  mutate(spread = rawpoll_clinton/100 - rawpoll_trump/100)
+results <- polls%>%summarize(mean = mean(spread), se = sd(spread)/sqrt(nrow(polls)))
+
+mu <- 0
+tau <- 0.035
+sigma <- results$se
+Y <- results$mean
+B <- sigma^2/(sigma^2+tau^2)
+posterior_mean <- B*mu+(1-B)*Y
+posterior_se <- sqrt(1/(1/sigma^2+1/tau^2))
+posterior_mean
+posterior_se
+```
+
+Para hacer una afirmación probabilística, partimos de la idea que la media posterior también es normal.
+
+Así que hacemos un intervalo llamado un intervalo de credibilidad:
+
+```{r}
+posterior_mean + c(-1.96, 1.96)*posterior_se
+```
+
+Este intervalo tiene el 95% de probabilidad de ocurrir.
+
+En este intervalo el 0 está incluído, pero si no lo estuviera, podríamos decir que hay un 95% de probabilidades de que Clinton gane.
+
+Para encontrar la probabilidad de d mayor que 0:
+
+```{r}
+1-pnorm(0, posterior_mean, posterior_se)
+```
+
+Sin embargo, los resultados suelen ser afectados por otras variables, por ejemplo, sesgos de encuestadoras o sesgos generales.
+
+En 2016, el sesgo favoreció a los demócratas en 1 o 2 %.
+Aunque se sabe de esto antes de las elecciones, no es posible calcularlo con precisión.
+
+Lo que se puede hacer es incluir un término en el modelo que de cuenta de esa variabilidad.
+
+### Representaciones matemáticas de los modelos:
+
+Supongamos que recogemos datos de un encuestador y asumimos que no hay sesgos generales.
+
+Los encuestadores recolecta varias encuestas con una muestra N, así que observamos varias medidas del Spread, a las que llamaremos X1...Xj.
+
+La teoría nos dice que estas variables aleatorias tienen un valor esperado d y un error estándar dos veces la raíz cuadrada de p veces 1 menos p, dividido por N.
+
+$d=valor esperado$
+
+$se=2\sqrt{p(1-p/N}$
+
+Este modelo matemático se puede representar así:
+
+$X_j = d+\epsilon_j$
+
+Se usa la letra Epsilon para representar el objeto, y la jota para representar diferentes encuestas que explican la variabilidad entre ellas introducidas por el error de muestreo.
+
+Si d es 2.1 y la encuesta tiene un tamaño de muestra de 2000, podemos simular seis puntos de datos de un modelo usando este código:
+
+```{r}
+J <- 6
+N <- 2000
+d <- 0.21
+p <- (d+1)/2
+X <- d+rnorm(J, 0,2*sqrt(p*(1-p)/N))
+X
+```
+
+Ahora supongamos que tenemos seis puntos de dta de cinco diferentes encuestadoras.
+Para representar esto, necesitamos dos índice, uno para la encuestadora y otro para la encuesta que cada encuestadora hace:
+
+Usaremos X_i,; en el que i representa la encuestadora y j representa la encuesta de cada encuestadora:
+
+$X_i,_j = d + \epsilon_i,_j$
+
+Para simular los datos, ahora tendremos que usar un sapply loop:
+
+```{r}
+I <- 5
+J <- 6
+N <- 2000
+X <- sapply(1:I, function(i){
+  d+rnorm(J,0, 2*sqrt(p*(1-p)/2) )
+})
+
+```
+
+Esto crea datos para 6 encuestas diferentes:
+
+La variabilidad de estas encuestas continúa sin reflejar las de las encuestas: el efecto de las encuestadoras.
+
+Usaremo h_i para representar el efecto de cada encuestadora:
+
+$$
+X_i,_j = d+h_i+\epsilon_i,_j
+$$
+
+Así que necesitamos agregar un hi para cada encuesta y luego agregar los epsilon.
+
+```{r}
+I <- 5 
+J <- 6
+N <- 2000
+d <- 0.21
+p <- (d+1)/2
+h <- rnorm(I, 0, 0.025)
+X <-  sapply (1:I, function(i){
+  d + h[i]+rnorm(J, 0, 2*sqrt(p*(1-p)/N))
+})
+X
+```
+
+Ahora los datos son similares y reflejan la variabiliad de cada encuestadora.
+
+En el modelo se asumió que el efecto de la encuestadora es 0, porque se supone que uno equilibra al otro.
+
+No obstante, se ha encontrado que hay un sesgo general, así que también lo representaremos añadiendo un nuevo término b al modelo:
+
+$$
+X_i,_j = d+b+h_i+\epsilon_i,_j
+$$
+
+Ahora, la media de la muestra se representa así:
+
+$$
+\bar{X}= d+b+\frac{1}{N}\sum_{i = 1}^{N}{X_i}
+$$
+
+Esto implica que la desviación estándar de X_bar incluye este término:
+
+$$
+\sqrt{\sigma^2/N+\sigma^2_b}
+$$
+
+```{r}
+mu <- 0
+tau <- 0.035
+sigma <- sqrt(results$se^2 + 0.25^2)
+Y <- results$mean
+B <- sigma^2/(sigma^2+tau ^2)
+posterior_mean <- B*mu +(1-B)*Y
+posterior_se <- sqrt(1/(1/sigma^2 + 1/tau^2))
+1-pnorm(0, posterior_mean, posterior_se)
+
+```
+
+Aquí tenemos una probabilidad de que Clinton gane la elección del 50%, incluyendo los anteriores términos de error.
+
+### prediciendo el colegio electoral:
+
+En USA no se gana según el voto popular sino por votos electorales (cada estado tiene un número determinado de votos, pero si se gana en el estado, se gana todos estos votos)
+
+```{r}
+library(dslabs)
+library(tidyverse)
+data(polls_us_election_2016)
+results <- polls_us_election_2016%>%
+  filter(state!="U.S."&
+           !grepl("CD",state)&
+           (grade %in% c("A+", "A", "A-", "B+") | is.na(grade)))%>%
+  mutate(spread = rawpoll_clinton/100-rawpoll_trump/100)%>%
+  group_by(state)%>%
+  summarize (avg = mean(spread), sd = sd(spread), n = n())%>%
+  mutate(state = as.character(state))
+results %>% arrange(abs(avg))
+```
+
+Ahora vamos a unir los datos de ambas bases de datos (polls_us_election y results), por estado.
+Esto quiere decir que, en tanto los estados coinciden en ambas bases de datos, los datos que están en una se agregan a la otra.
+
+```{r}
+results <- left_join(results, results_us_election_2016, by = "state")
+```
+
+Algunos estados no tienen encuestas, lo cual se debe a que hay mucha seguridad allí acerca de quién será el ganador.
+
+```{r}
+results_us_election_2016 %>% filter(!state%in%results$state)
+```
+
+Vamos a asignarles una desviación estándar a los estados que no la tienen.
+
+```{r}
+results <- results %>% 
+  mutate(sd = ifelse(is.na(sd), median(results$sd, na.rm=TRUE), sd))
+```
+
+Ahora creemos una simulación Montecarlo para crear resultados para elecciones simuladas, lo cual nos permitirá hacer afirmaciones probabilísticas.
+
+Si bien podemos construir distribuciones previas para cada estado, por simplicidad vamos a configurar la d.
+previa con valor esperado de 0, asumiendo que no sabemos nada.
+Además, como sabemos que los resultados año a año no cambian mucho, asignaremos una desviación estándar de 0.02:
+
+$\mu = 0$ $\tau = 0.02$
+
+```{r}
+mu <- 0
+tau <- 0.02
+results %>% mutate(sigma = sd/sqrt(n),
+                   B = sigma^2/(sd^2+tau^2), 
+                   posterior_mean = B*mu + (1-B)*avg, 
+                   poterior_se = sqrt(1/(1/sigma^2+1/tau^2)))%>% arrange(abs(posterior_mean))
+```
+
+En todos los casos, posterior_mean se acerca más a 0 que mean, estos se debe a que entre más datos recolectemos, más confianza tenemos sobre nuestros resultados.
+
+Ahora vamos a repetir estos 10000 veces y generar un resultado posterior.
+Sólo mantendremos el número total de votos electorales para Clinton:
+
+Agregaremos siete porque no teneos resultados para Rhode Island ni DC, pero estamos seguros que los demócratas ganarán en esos estados:
+
+```{r}
+mu <- 0
+tau <- 0.02
+clinton_EV <- replicate (10000, {
+  results %>% mutate(sigma = sd/sqrt(n),
+                   B = sigma^2/(sd^2+tau^2), 
+                   posterior_mean = B*mu + (1-B)*avg, 
+                   posterior_se = sqrt(1/(1/sigma^2+1/tau^2)), 
+                   simulated_results = rnorm(length(posterior_mean), posterior_mean, posterior_se),
+                   clinton = ifelse(simulated_results >0, electoral_votes, 0))%>% 
+    summarize (clinton = sum(clinton))%>% 
+    .$clinton + 7
+})
+```
+
+```{r}
+head(clinton_EV)
+
+```
+
+Aquí está el número de votos electorales que sacaría Clinton, para ganar necesita más de 269, así que calcularemos la proporción de veces en las que obtuvo ese resultado:
+
+```{r}
+mean(clinton_EV>269)
+```
+
+De acuerdo con esta simulación obtuvo ese resultado en el 100% de los casos.
+
+Miremos un histograma de los resultados:
+
+```{r}
+data.frame(clinton_EV)%>%ggplot(aes(clinton_EV))+geom_histogram(binwidth = 1, color = "black")+geom_vline(xintercept = 269)
+```
+
+En todas las simulaciones obtuvo por encima de 315 votos.
+
+Sin embargo ganó Trump ¿qué paso?
+
+Las simulaciones ignoran el sesgo general.
+Este no fue tan alto en 2016 pero estuvo entre 1% y 2%.
+
+Ignorar este sesgo introduce exceso de confianza en los resultados.
+
+Podemos simular este sesgo, introduciendo un término de sesgo, así que vamos a stablecer sigma en 0.03 (un poco más grande que el observado):
+
+```{r}
+bias_sd<-0.03
+mu = 0
+tau <- 0.02
+clinton_EV <- replicate (10000, {
+  results %>% mutate(sigma = sqrt(sd^2/n+bias_sd^2),
+                   B = sigma^2/(sd^2+tau^2), 
+                   posterior_mean = B*mu + (1-B)*avg, 
+                   posterior_se = sqrt(1/(1/sigma^2+1/tau^2)), 
+                   simulated_results = rnorm(length(posterior_mean), posterior_mean, posterior_se),
+                   clinton = ifelse(simulated_results >0, electoral_votes, 0))%>% 
+    summarize (clinton = sum(clinton))%>% 
+    .$clinton + 7
+})
+```
+
+Nótese que arriba sólo se agregó el bias_sd a la hora de calcular Sigma.
+Miremos las probabilidades:
+
+```{r}
+mean(clinton_EV > 269)
+```
+
+Ahora son menores.
+
+Miremos la histograma:
+
+```{r}
+data.frame(clinton_EV)%>%ggplot(aes(clinton_EV))+geom_histogram(binwidth = 1, color = "black")+geom_vline(xintercept = 269)
+```
+
+Ahora hay algunas simulaciones que están bajo la línea de 269 votos.
+
+Todo esto quiere decir que entre más términos ingresemos al modelo(Si los términos son correctos), las datos serán más precisos.
+
+### Variabilidad de encuestas antes de las elecciones a lo largo del tiempo
+
+¿Qué tan informativas son las encuestas antes de las elecciones?
+
+Para estar seguros de que la variabilidad no se debe al efecto encuestadora, apeguémonos a una sola:
+
+```{r}
+one_pollster <- polls_us_election_2016%>%
+  filter(pollster == "Ipsos" & state =="U.S.")%>%
+  mutate (spread = rawpoll_clinton/100 - rawpoll_trump/100)
+```
+
+En tanto no hay efecto encuestador, quizá el error estándar teórico coincidirá con la desviación estándar que se deriva de los datos.
+
+Computémoslos:
+
+```{r}
+se <- one_pollster %>%
+  summarize(empirical = sd(spread),
+            theoretical = 2*sqrt(mean(spread)*(1-mean(spread))/min(samplesize)))
+se
+```
+
+ESta diferecnia se debe a una variabilidad.
+Y esta variabilidad tiene que ver con el tiempo.
+
+Miremos la tendencia para varias encuestadoras a lo largo del tiempo.
+
+```{r}
+polls_us_election_2016%>%
+  filter(state=="U.S." & enddate >="2016-07-01")%>%
+  group_by(pollster) %>%
+  filter (n()>=10)%>%
+  ungroup()%>%
+  mutate(spread = rawpoll_clinton/100 - rawpoll_trump/100)%>%
+  ggplot(aes(enddate, spread))+
+  geom_smooth(method="loess", span = 0.1)+
+  geom_point(aes(color=pollster), show.legend = FALSE, alpha=0.6)
+
+
+```
+
+Cada color es una encuestadora.
+Vemos que presentan niveles similares de dispersión.
+
+Esto implica que tendremos que modela la variabilidad debida al tiempo.
+El modelo quedaría así:
+
+$$
+Y_i,_j,_t= d+b+h_j+b_t+\epsilon_i,_j,_t 
+$$
+
+El término b_t da cuenta de la variabilidad a lo largo del tiempo.
+
+Las encuestadoras también tratan de estimar tendencias, a las cuales se les puede considerar una función del tiempo f(t).
+Este término también se agrega al modelo:
+
+$$
+Y_i,_j,_t= d+b+h_j+b_t+f(t)+\epsilon_i,_j,_t 
+$$
+
+```{r}
+polls_us_election_2016 %>%
+  filter(state=="U.S." & enddate >= "2016-07-01")%>%
+  select(enddate, pollster, rawpoll_clinton, rawpoll_trump)%>%
+  rename(Clinton = rawpoll_clinton, Trump = rawpoll_trump) %>%
+  gather(candidate, percentage, -enddate, -pollster) %>%
+  mutate(candidate = factor(candidate, levels = c("Trump", "Clinton")))%>%
+  group_by(pollster)%>%
+  filter(n()>=10)%>%
+  ungroup()%>%
+  ggplot(aes(enddate, percentage, color = candidate))+
+  geom_point(show.legend = FALSE, alpha= 0.4)+
+  geom_smooth(method = "loess", span = 0.15) +
+  scale_y_continuous(limits = c(30,50))
+
+
+```
+
+## La distribución T. 
+
+Previamente se hizo uso del teorema del límite central con una muestra de 15 (pequeña).
+
+Debido a que estamos estimando un segundo parámetro, sigma, la variabilidad posterior es introducida en nuestro intervalo de confianza, y esto da lugar en un intervalo excesivamente confiado, debido a que no da cuenta de esa variabilidad.
+
+Para tamaños de muestra muy grandes, esta varaibilidad es inocua, pero, en general, para valores menores que 30, necesitamos precaución a la hora de usar el teorema del límite central.
+
+Sin embargo, si se sabe que los datos en la urna siguen una distribución normal, entonces tenemos una teoría matemática que nos dice que tan grande necesitamos hacer los intervalos para dar cuenta de sigma.
+
+Usando esta teoría podemos construir intervalos de confianza para cualquier urna, pero, solo si se sabe que estos son normales.
+
+Así que para los datos de 0 y 1 que teníamos previamente en el modelo de urna el CLT no aplica.
+El estadístico en el que el intervalo de confianza del spread está basado es este:
+
+$$
+Z = \frac{\bar{X}-d}{\sigma/\sqrt{N}}
+$$
+
+Lo llamamos Z, el cual tiene una media de 0 y un error estándar de 1.
+
+Pero como en la práctica no sabemos sigma, usamos s en su lugar:
+
+$$
+Z = \frac{\bar{X}-d}{s/\sqrt{N}}
+$$
+
+Pero haciendo esto, introducimos cierta variabilidad.
+El s, como variabilidad es estimado de los datos.
+
+En ese sentido, Z seguirá una distribución t, con N-1 grados de libertad.
+
+Los grados de libertad son un parámetro que controla la variailidad via colas aplanadas.
+
+En este sentido la campana se parece cada vez más a una t, en la medida que los grados de libertad aumentan.
+Es decir, que los valores más grandes tienen mayor probabilidad paragrados de libertad menores.
+
+Quizá un mejor intervalo de confianza para d se puede hacer usando la distribución t.
+
+```{r}
+z <- qt(0.975, nrow(one_pollster))
+one_pollster %>% summarize(avg = mean(spread), moe = z*sd(spread)/sqrt(length(spread)))%>%mutate(start = avg-moe, end = avg+moe)
+```
+
+## pruebas de asociación
+
+Es hora de considerar pruebas para otro tipo de variables:
+
+Un artículo de PNAS analizó las tasas de éxito en agencias de patrocinio en Holanda, y concluyó que sus resultados revelaban sesgos de género que favorecían a los hombres sobre las mujeres en la calificación del item calidad en la investigación.
+
+La mayor evidencia para esta conclusión viene de la comparación de porcentajes.
+
+```{r}
+data("research_funding_rates")
+research_funding_rates
+```
+
+Podemos computar la diferencia en porcentajes para hombres y mujeres.
+
+```{r}
+totals <- research_funding_rates %>%
+  select(-discipline)%>%
+  summarize(yes_men = awards_men,
+            no_men = applications_men - awards_men,
+            yes_women = awards_women,
+            no_women = applications_women - awards_women)
+totals
+```
+
+```{r}
+totals %>% summarize(percent_men = yes_men /(yes_men+no_men),
+                    percent_women = yes_women/(yes_women+no_women))
+```
+
+¿Se deberá esto solamente a la variabilidad aleatoria?
+
+### El test exacto de Fisher. 
+
+Con base en el caso de una amiga que decía que podía identificar si a un té le pusieron la leche antes o después, Fisher planteó un cálculo que parte del siguiente supuesto:
+
+Si tuviéramos ocho balotas en una urna, cuatro azules y cuatro rojas, cuál es la probabilidad de elegir tres azules, una tras otra, de manera aleatoria.
+
+Aquí las correctas son 4 azules y las incorrectas son cuatro rojas.
+
+$$
+\binom{4}{3}\binom{4}{1}/\binom{8}{4}=\frac{16}{70}=0.229 
+$$
+
+Los anteriores son números combinatorios.
+Para su cálculo se hace uso del factorial:
+
+$$
+\binom{m}{n}= \frac{m!}{n!(m-n)!}
+$$
+
+$$
+\binom{4}{3}= \frac{4!}{3!(4-3)!} = \frac{4*3*2*1}{3*2*1*1}= \frac{4*3*2*1}{3*2*1*1} = 4
+$$
+
+Si se hace el cálculo de las combinaciones anteriores, se tiene que los números de arriba son las elecciones posibles y los de abajo son los que se consideran éxitos.
+
+Ese cálculo da como resultado 16/70.
+
+Si quisiéramos calcular la probabilidad de que hay elegido cuatro azules y ninguna roja, tenemos, cuatro elecciones entre cuatro azules, lo cual se considera un éxito, 0 elecciones entre 4 rojas, lo cual se considera un éxito; y cuatro éxitos entre 8 posibilidades totales, lo cual es el total de la urna, así:
+
+$$
+\binom{4}{4}\binom{4}{0}/\binom{8}{4} = \frac{1}{70}= 0.014
+$$
+
+Para este caso, el resultado es igual a 1/70.
+
+Así que el 0.229 para elegir tres balotas y el 0.014 para elegir cuatro representa la probabilidad de que estas elecciones se hayan dado por puro azar, y constituye el p valor.
+
+Este procedimiento es llamado el test exacto de Fisher y usa la distribución hipergeométrica para calcular las probabilidades.
+
+Los datos para este tipo de experimento usualmente se resumen con una tabla como esta:
+
+```{r}
+tabla <- matrix(c(3,1,1,3), 2, 2)
+rownames(tabla) <- c("Leche antes", "Leche después")
+colnames(tabla)<- c("Predijo que antes", "Predijo que después")
+tabla
+```
+
+Podemos usar la función fisher.test() para hacer el cálculo
+
+```{r}
+f_tabla <- fisher.test(tabla, alternative = "greater")
+f_tabla
+```
+
+### Test de chi cuadrado: 
+
+De cierta forma, el caso de las mujeres investigadoras es similar al de la chica del te.
+Sin embargo, en el experimento del te, el número de balotas rojas y azules es experimentalmente fijo y el número de respuestas para cada categoría también es fijo.
+
+Esto se debe a que Fisher se aseguró que hubiesen cuatro tasas con leche antes y cuatro con leche después.
+La chica también sabía esto, así que sus respuetas serían cuatro y cuatro.
+
+Si este es el caso, la suma de filas y la suma de columnas en la tabla 2x2 es fija.
+Esto define los límites con respecto a las posibles formas en las que se puede llenar la tabla 2x2 y también define el uso de la distribución hipergeométrica.
+
+En general este no es el caso, pero hay un enfoque similar: EL TEST DE CHI CUADRADO.
+
+Supongamos que tenemos 2823 individuos, algunos hombre y otros mujeres, algunos reciben fondos y otros no.
+En ese sentido tenemos dos variables binarias: hombres/mujeres y reciben/no reciben fondos.
+
+Vimos que la tasa de éxito para los hombres fue alrededor del 18% y para las mujeres alrededor del 15%.
+La tasa de éxito general (hombre y mujeres) fue entre 16% y 17%.
+
+```{r}
+funding_rate <- totals%>%summarize(percent_total =
+                                     (sum(yes_men) + sum(yes_women))/
+                                     (sum(yes_men)+sum(no_men)+sum(yes_women)+sum(no_women)))%>%
+  .$percent_total
+funding_rate
+```
+
+Así que la pregunta es ¿veremos una diferencia entre hombres y mujeres tan grande como la que veríamos si los fundos fueran repartidos de manera aleatoria usando esta tasa?
+
+El test chi-cuadrado responde a esta pregunta.
+
+El primer paso es crear una tabla 2\*2:
+
+```{r}
+dos_dos <- tibble(otorgada = c("no", "sí"),
+                  hombre = c(sum(totals$no_men), sum(totals$yes_men)),
+                             mujer = c(sum(totals$no_women), sum(totals$yes_women) ))
+dos_dos
+```
+
+La idea general del test de Fisher es comparar esta tabla con la que uno podría esperar con base en la tasa general de fondeo (0.1654).
+La tabla esperada sería la siguiente:
+
+```{r}
+tibble(otorgada = c("no", "sí"),
+                  hombre = (sum(totals$no_men) + sum(totals$yes_men))*
+         c(1-funding_rate, funding_rate),
+                             mujer = (sum(totals$no_women) + sum(totals$yes_women)) *c(1-funding_rate, funding_rate))
+```
+Comparando las dos tablas se puede ver que más hombres que lo esperado y menos mujeres que lo esperado reciben fondos. Bajo la hipótesis nula, esta observación es una variable aleatoria. El test de chi cuadrado nos ayuda a identificar qué tan probable es una desviación como esta, o más grande, por casualidad. 
+Este test usa un resultado asintótico, similar al teorema del límite central, relacionado con la suma de resultados binarios independientes. 
+
+```{r}
+chisq <- dos_dos%>%select(-otorgada)%>%chisq.test()
+```
+
+La probabilidad de que esos resultados se presenten de manera casual es el p: 0.051
+
+Esto es importante, pero también se deben presentar estadísticos de resumen. El más informativo es el odds ratio. 
+
+```{r}
+odds_men <- (dos_dos$hombre[2]/sum(dos_dos$hombre))/(dos_dos$hombre[1]/sum(dos_dos$hombre))
+odds_women <- (dos_dos$mujer[2]/sum(dos_dos$mujer))/(dos_dos$mujer[1]/sum(dos_dos$mujer))
+odds_men
+odds_women
+odds_men/odds_women
+```
+
+¿Cuántas veces es más grande la posibilidad de lhos hombres frente a las mujeres? en este caso es 1.23
+
+### sobre el abuso de los valores p. 
+En la literatura científica se la ha dado mucha importancia al valor p. Sin embargo, los estudios suelen usar tamaños de muestra muy grandes, lo cual da lugar a resultados estadísticamente significativos, pese a que el valor real sea de poca utilidad científica o práctica. Por ejemplo, con un tamaño de muestra muy grande, un odds ratio pequeño, de 1.05 puede resultar estadísticamente significativo, pero eso no de cuenta de un valor útil. 
+Debido a esto es que es importante acompañer el p valor de odds ratio o intervalos de confianza. Para los odds/ratio es más difícil usar los intervalos de confianza debido a que al ser un ratio de otro ratio no siguen el teorema del límite central. Una aproximación útil es la teoría de los modelos lineales generalizados, que se verán más adelante. 
